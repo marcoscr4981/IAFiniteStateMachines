@@ -1,25 +1,30 @@
 using System.Collections;
 using System.Collections.Generic;
+//using System.Numerics;
 using UnityEngine;
 using UnityEngine.AI;
 
 // Clase base que representa un estado nunha máquina de estados finitos.
 // Implementa o patrón State para controlar o comportamento dun NPC.
-public class State {
+public class State
+{
 
     // Enumeración dos posibles estados do NPC
-    public enum STATE {
+    public enum STATE
+    {
 
         IDLE,       // Inactivo
         PATROL,     // Patrullando
         PURSUE,     // Perseguindo
         ATTACK,     // Atacando
         SLEEP,      // Durmindo
-        RUNAWAY     // Fuxindo
+        RUNAWAY,     // Fuxindo
+        DIE         // Morir
     };
 
     // Enumeración dos eventos do ciclo de vida dun estado
-    public enum EVENT {
+    public enum EVENT
+    {
 
         ENTER,      // Entrada ao estado
         UPDATE,     // Actualización do estado
@@ -162,6 +167,12 @@ public class Idle : State
             nextState = new Patrol(npc, agent, animator, player);  // Crea un estado de patrulla
             stage = EVENT.EXIT;                                 // Marca para saír do estado actual
         }
+        // Si el jugador hace clic con el botón izquierdo del ratón
+        else if (Input.GetMouseButton(0))
+        {
+            nextState = new Die(npc, agent, animator, player);
+            stage = EVENT.EXIT;
+        }
     }
 
     //=========================================================================
@@ -202,6 +213,7 @@ public class Patrol : State
         for (int i = 0; i < GameEnvironment.Singleton.Checkpoints.Count; ++i)
         {
             GameObject thisWP = GameEnvironment.Singleton.Checkpoints[i];       // Obtén o checkpoint actual
+
             float distance = Vector3.Distance(npc.transform.position, thisWP.transform.position);  // Calcula a distancia
             if (distance < lastDistance)        // Se é o máis próximo ata agora...
             {
@@ -246,6 +258,12 @@ public class Patrol : State
         else if (IsPlayerBehind())
         {
             nextState = new RunAway(npc, agent, animator, player);
+            stage = EVENT.EXIT;
+        }
+        // Si el jugador hace clic con el botón izquierdo del ratón
+        if (Input.GetMouseButton(0))
+        {
+            nextState = new Die(npc, agent, animator, player);
             stage = EVENT.EXIT;
         }
     }
@@ -303,6 +321,12 @@ public class Pursue : State
             else if (!CanSeePlayer())
             {
                 nextState = new Patrol(npc, agent, animator, player);
+                stage = EVENT.EXIT;
+            }
+            // Si el jugador hace clic con el botón izquierdo del ratón
+            else if (Input.GetMouseButton(0))
+            {
+                nextState = new Die(npc, agent, animator, player);
                 stage = EVENT.EXIT;
             }
         }
@@ -366,6 +390,12 @@ public class Attack : State
             shoot.Stop();                                       // Detén o son de disparo
             stage = EVENT.EXIT;                                 // Marca para saír do estado
         }
+        // Si el jugador hace clic con el botón izquierdo del ratón
+        else if (Input.GetMouseButton(0))
+        {
+            nextState = new Die(npc, agent, animator, player);
+            stage = EVENT.EXIT;
+        }
     }
 
     //=========================================================================
@@ -411,6 +441,12 @@ public class RunAway : State
     //=========================================================================
     public override void Update()
     {
+        if (Input.GetMouseButton(0))
+        {
+            nextState = new Die(npc, agent, animator, player);
+            stage = EVENT.EXIT;
+        }
+
         // Se chegou á localización segura (a menos de 1 unidade)...
         if (agent.remainingDistance < 1.0f)
         {
@@ -426,5 +462,51 @@ public class RunAway : State
     {
         animator.ResetTrigger("isRunning");     // Limpa o trigger da animación de correr
         base.Exit();                        // Chama ao método Exit da clase base
+    }
+}
+
+
+//=========================================================================
+// Estado DIE (Morir)
+// O NPC muere
+//=========================================================================
+public class Die : State
+{
+    float t = 0;
+    bool showMsg;
+
+    public Die(GameObject _npc, NavMeshAgent _agent, Animator _animator, Transform _player)
+        : base(_npc, _agent, _animator, _player)
+    {
+        name = STATE.DIE;
+    }
+
+    public override void Enter()
+    {
+        animator.SetTrigger("isDie");
+        agent.isStopped = true;
+        base.Enter();
+    }
+
+    public override void Update()
+    {
+
+        float delay = 3f;
+
+
+        t += Time.deltaTime;
+        if (t > delay)
+        {
+            if (!showMsg)
+            {
+                Debug.Log("Enemigo muerto");
+                showMsg = true;
+            }
+        }
+    }
+
+    public override void Exit()
+    {
+        base.Exit();
     }
 }

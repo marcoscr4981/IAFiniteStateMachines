@@ -16,6 +16,8 @@ public class AI : MonoBehaviour {
 
     public Transform player;    // Referencia á transformada do xogador
 
+    string npcState;
+
     //=========================================================================
     // Método Start - Inicialización do compoñente
     // Chámase unha vez ao iniciar o GameObject
@@ -34,6 +36,17 @@ public class AI : MonoBehaviour {
     void Update() {
 
         // Procesa o estado actual e actualiza ao novo estado se hai transición
+        if (Input.GetMouseButton(0))
+        {
+            //
+        }
         currentState = currentState.Process();
-    }
+        
+        if (npcState != currentState.ToString())
+        {
+            npcState = currentState.ToString();
+            Debug.Log("Nuevo estado: " + npcState);
+        }
+
+    }//3821
 }
